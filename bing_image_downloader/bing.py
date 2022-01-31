@@ -5,21 +5,26 @@ import imghdr
 import posixpath
 import re
 
+import yaml
+
 '''
 Python api to download image form Bing.
 Author: Guru Prasad (g.gaurav541@gmail.com)
+Modified by: Will Cruse (wpjc20@bath.ac.uk)
 '''
 
 
 class Bing:
-    def __init__(self, query, limit, output_dir, adult, timeout,  filter='', verbose=True):
+    def __init__(self, query, limit, output_dir: Path, adult, timeout,  filter='', verbose=True, store_image_info=True):
         self.download_count = 0
         self.query = query
         self.output_dir = output_dir
         self.adult = adult
         self.filter = filter
         self.verbose = verbose
+        self.store_image_info = store_image_info
         self.seen = set()
+        self.files = []
 
         assert type(limit) == int, "limit must be integer"
         self.limit = limit
@@ -61,6 +66,14 @@ class Bing:
             raise ValueError('Invalid image, not saving {}\n'.format(link))
         with open(str(file_path), 'wb') as f:
             f.write(image)
+        if self.store_image_info:
+            self.files.append({
+                "file-name": file_path.name,
+                "link": link,
+                "image-id": self.download_count,
+                "search-term": self.query,
+            })
+            print(self.files)
 
     
     def download_image(self, link):
@@ -113,3 +126,6 @@ class Bing:
 
             self.page_counter += 1
         print("\n\n[%] Done. Downloaded {} images.".format(self.download_count))
+        if self.store_image_info:
+            with open(self.output_dir.joinpath("image-data.yaml"), "w") as output_file:
+                yaml.dump({"images": self.files}, output_file)
